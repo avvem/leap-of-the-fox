@@ -7,6 +7,7 @@ from hunter import HunterClass
 from projectile import Projectile
 from explosion import Explosion
 from muzzle_flash import MuzzleFlash
+from environment import Environment
 
 print("Imports done")
 
@@ -22,6 +23,30 @@ screen = pygame.display.set_mode((XSIZE, YSIZE))
 
 BACKGROUND = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'bg.png'))
 BACKGROUND = pygame.transform.scale(BACKGROUND, (XSIZE, YSIZE))
+
+GRID_WIDTH = XSIZE // 50
+GRID_HEIGHT = YSIZE // 50
+GRID_SIZE = XSIZE // GRID_WIDTH
+TOTAL_OBSTACLES = 20
+MIN_BLOBS = 2
+MAX_BLOBS = 4
+
+ROCK_IMAGE_1 = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'rock1.png'))
+ROCK_IMAGE_1 = pygame.transform.scale(ROCK_IMAGE_1, (GRID_SIZE, GRID_SIZE))
+
+ROCK_IMAGE_2 = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'rock2.png'))
+ROCK_IMAGE_2 = pygame.transform.scale(ROCK_IMAGE_2, (GRID_SIZE, GRID_SIZE))
+
+ROCK_IMAGE_3 = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'rock3.png'))
+ROCK_IMAGE_3 = pygame.transform.scale(ROCK_IMAGE_3, (GRID_SIZE, GRID_SIZE))
+
+ROCK_IMAGE_4 = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'rock4.png'))
+ROCK_IMAGE_4 = pygame.transform.scale(ROCK_IMAGE_4, (GRID_SIZE, GRID_SIZE))
+
+ROCK_IMAGE_5 = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'rock5.png'))
+ROCK_IMAGE_5 = pygame.transform.scale(ROCK_IMAGE_5, (GRID_SIZE, GRID_SIZE))
+
+ROCK_IMAGE_LIST = [ROCK_IMAGE_1, ROCK_IMAGE_2, ROCK_IMAGE_3, ROCK_IMAGE_4, ROCK_IMAGE_5]
 
 FOX_WIDTH = round(XSIZE/20)
 FOX_HEIGHT = round(XSIZE/20)
@@ -81,7 +106,7 @@ DYING_SOUND = pygame.mixer.Sound(os.path.join(os.path.dirname(os.path.abspath(__
 
 
 
-def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes):
+def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
 
     screen.blit(BACKGROUND,(0,0))
     screen.blit(SQUIRREL_IMAGE, squirrel_npc.pos)
@@ -110,6 +135,8 @@ def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, ex
             muzzle_flashes.remove(muzzle_flash)
 
     fox_player.draw_jump_trail(screen, pygame=pygame)
+
+    env.draw(screen, ROCK_IMAGE_LIST)
 
     draw_bars(fox_player)
 
@@ -207,10 +234,50 @@ def check_bullet_collision(projectile, fox_player):
 
 def main():
 
-    fox_player = FoxClass(position=(round(XSIZE/2),round(YSIZE/2)), direction="right", step_length=STEP_LENGTH, jump_length=JUMP_LENGTH, x_max=XSIZE-FOX_WIDTH, y_max=YSIZE-FOX_HEIGHT, latest_horizontal="right", stamina=FOX_MAX_STAMINA, health=FOX_MAX_HEALTH, jump_stamina=JUMP_STAMINA_REQUIREMENT)
-    squirrel_npc = SquirrelClass(x_max=XSIZE-SQUIRREL_WIDTH, y_max=YSIZE-SQUIRREL_HEIGHT)
 
-    hunter_npc = HunterClass(x_max=XSIZE-HUNTER_WIDTH, y_max=YSIZE-HUNTER_HEIGHT, step_length=HUNTER_STEP_LENGTH, bullet_speed=BULLET_SPEED, width=HUNTER_WIDTH, height=HUNTER_HEIGHT)
+    env = Environment(
+        grid_width=GRID_WIDTH,
+        grid_height=GRID_HEIGHT,
+        grid_size=GRID_SIZE,
+        total_obstacles=TOTAL_OBSTACLES,
+        min_blobs=MIN_BLOBS,
+        max_blobs=MAX_BLOBS
+    )
+
+    fox_player = FoxClass(
+        position=(round(XSIZE / 2), round(YSIZE / 2)),
+        direction="right",
+        step_length=STEP_LENGTH,
+        jump_length=JUMP_LENGTH,
+        x_max=XSIZE - FOX_WIDTH,
+        y_max=YSIZE - FOX_HEIGHT,
+        latest_horizontal="right",
+        stamina=FOX_MAX_STAMINA,
+        health=FOX_MAX_HEALTH,
+        jump_stamina=JUMP_STAMINA_REQUIREMENT,
+        env=env,
+        width=FOX_WIDTH,
+        height=FOX_HEIGHT
+    )
+
+    squirrel_npc = SquirrelClass(
+        x_max=XSIZE - SQUIRREL_WIDTH,
+        y_max=YSIZE - SQUIRREL_HEIGHT,
+        env=env,
+        width=SQUIRREL_WIDTH,
+        height=SQUIRREL_HEIGHT
+    )
+
+    hunter_npc = HunterClass(
+        x_max=XSIZE - HUNTER_WIDTH,
+        y_max=YSIZE - HUNTER_HEIGHT,
+        step_length=HUNTER_STEP_LENGTH,
+        bullet_speed=BULLET_SPEED,
+        width=HUNTER_WIDTH,
+        height=HUNTER_HEIGHT,
+        env=env
+    )
+
     hunters = [hunter_npc]
     projectiles = []
     explosions = []
@@ -227,7 +294,7 @@ def main():
 
     while running:
         counter += 1
-        has_collided = False
+        has_eaten = False
         # poll for events
         # pygame.QUIT event means the user clicked X to close your window
         for event in pygame.event.get():
@@ -236,26 +303,28 @@ def main():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    jump_successful = fox_player.jump(FOX_JUMPING_SOUND)
-                    if(jump_successful):
-                        has_collided = check_jumping_eat(fox_player, squirrel_npc)
-                    else:
+                    jump_return = fox_player.jump(FOX_JUMPING_SOUND)
+                    if jump_return=="SUCCESS":
+                        has_eaten = check_jumping_eat(fox_player, squirrel_npc)
+                    elif jump_return=="NO STAMINA":
                         FOX_OUT_OF_STAMINA_SOUND.play()
+                    elif jump_return=="BLOCKED":
+                        pass
         
         keys_pressed = pygame.key.get_pressed()
         fox_player.handle_movement(keys_pressed=keys_pressed, pygame=pygame)
 
-        if(not has_collided):
-            has_collided = check_eat(fox_player, squirrel_npc)
+        if(not has_eaten):
+            has_eaten = check_eat(fox_player, squirrel_npc)
 
-        if(has_collided):
+        if(has_eaten):
             FOX_EATS_SOUND.play()
             player_score += 1
             if(player_score % 10 == 0):
-                new_hunter = HunterClass(x_max=XSIZE-HUNTER_WIDTH, y_max=YSIZE-HUNTER_HEIGHT, step_length=HUNTER_STEP_LENGTH, bullet_speed=BULLET_SPEED, width=HUNTER_WIDTH, height=HUNTER_HEIGHT)
+                new_hunter = HunterClass(x_max=XSIZE-HUNTER_WIDTH, y_max=YSIZE-HUNTER_HEIGHT, step_length=HUNTER_STEP_LENGTH, bullet_speed=BULLET_SPEED, width=HUNTER_WIDTH, height=HUNTER_HEIGHT, env=env)
                 hunters.append(new_hunter)
                 HUNTER_SPAWNING_SOUND.play()
-            squirrel_npc.move()
+            squirrel_npc.spawn()
 
         if(counter % 25 == 0):
             squirrel_npc.jitter_walk()
@@ -273,6 +342,8 @@ def main():
             projectile.move()
             if not (0 <= projectile.pos[0] <= XSIZE and 0 <= projectile.pos[1] <= YSIZE):
                 projectiles.remove(projectile)
+            elif not env.is_walkable(projectile.pos, BULLET_WIDTH, BULLET_WIDTH):
+                projectiles.remove(projectile)
             else:
                 # Check collision with fox
                 if(check_bullet_collision(projectile, fox_player)):
@@ -287,17 +358,17 @@ def main():
             DYING_SOUND.play()
             break
 
-        draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes)
+        draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
 
         clock.tick(FPS)  # limits FPS to 60
     
     draw_game_over(screen, final_score=player_score, font=SCORE_FONT)
     pygame.time.delay(3000)
 
-    player_name = get_player_name(screen, SCORE_FONT, player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes)
+    player_name = get_player_name(screen, SCORE_FONT, player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
     save_high_score(player_name, player_score)
 
-    show_high_scores(screen, SCORE_FONT, "high_scores.txt", player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes)
+    show_high_scores(screen, SCORE_FONT, "high_scores.txt", player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
     pygame.time.delay(5000)
 
     running = True
@@ -359,14 +430,14 @@ def draw_game_over(screen, final_score, font):
 
     pygame.display.flip()
 
-def get_player_name(screen, font, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes):
+def get_player_name(screen, font, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
     name = ""
     active = True
     input_box = pygame.Rect(XSIZE // 2 - 125, YSIZE // 2 + 80, 250, 75)
     clock = pygame.time.Clock()
 
     # Redraw the game window and overlay
-    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes)
+    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
     overlay = pygame.Surface((XSIZE, YSIZE))
     overlay.set_alpha(180)
     overlay.fill((50, 50, 50))
@@ -410,7 +481,7 @@ def save_high_score(name, score, filename="high_scores.txt"):
     with open(filename, "a") as file:
         file.write(f"{name}: {score}\n")
 
-def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes):
+def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
     if not os.path.exists(filename):
         return
 
@@ -420,7 +491,7 @@ def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc,
     scores = sorted(scores, key=lambda x: int(x.split(": ")[1]), reverse=True)
     top_scores = scores[:10]
 
-    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes)
+    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
     overlay = pygame.Surface((XSIZE, YSIZE))
     overlay.set_alpha(180)
     overlay.fill((50, 50, 50))

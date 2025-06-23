@@ -3,7 +3,7 @@ class FoxClass:
     # position is tuple with x and y coordinates (0,0) is top left
     # direction is string with left, right, up or down
 
-    def __init__(self, position, direction, step_length, jump_length, x_max, y_max, latest_horizontal, stamina, health, jump_stamina):
+    def __init__(self, position, direction, step_length, jump_length, x_max, y_max, latest_horizontal, stamina, health, jump_stamina, env, width, height):
         self.pos = position
         self.dir = direction
         self.step_length = step_length
@@ -15,6 +15,9 @@ class FoxClass:
         self.health = health
         self.jump_stamina = jump_stamina
         self.jump_trail = []  # List of (position, alpha)
+        self.env = env
+        self.width = width
+        self.height = height
         print(f"Fox object created with position {self.pos} and direction {self.dir}. Step length {self.step_length}.")
 
     def handle_movement(self, keys_pressed, pygame):
@@ -57,49 +60,68 @@ class FoxClass:
     
     def walk(self, direction):
         x, y = self.pos
+        new_x, new_y = x, y
 
         if direction == "left":
-            x = max(0, x - self.step_length)
+            new_x = max(0, x - self.step_length)
             self.latest_horizontal = "left"
         elif direction == "right":
-            x = min(self.x_max, x + self.step_length)
+            new_x = min(self.x_max, x + self.step_length)
             self.latest_horizontal = "right"
-        elif direction== "up":
-            y = max(0, y - self.step_length)
+        elif direction == "up":
+            new_y = max(0, y - self.step_length)
         elif direction == "down":
-            y = min(self.y_max, y + self.step_length)
+            new_y = min(self.y_max, y + self.step_length)
         elif direction == "up-left":
-            x = max(0, x - self.step_length)
-            y = max(0, y - self.step_length)
+            new_x = max(0, x - self.step_length)
+            new_y = max(0, y - self.step_length)
             self.latest_horizontal = "left"
         elif direction == "up-right":
-            x = min(self.x_max, x + self.step_length)
-            y = max(0, y - self.step_length)
+            new_x = min(self.x_max, x + self.step_length)
+            new_y = max(0, y - self.step_length)
             self.latest_horizontal = "right"
         elif direction == "down-left":
-            x = max(0, x - self.step_length)
-            y = min(self.y_max, y + self.step_length)
+            new_x = max(0, x - self.step_length)
+            new_y = min(self.y_max, y + self.step_length)
             self.latest_horizontal = "left"
         elif direction == "down-right":
-            x = min(self.x_max, x + self.step_length)
-            y = min(self.y_max, y + self.step_length)
+            new_x = min(self.x_max, x + self.step_length)
+            new_y = min(self.y_max, y + self.step_length)
             self.latest_horizontal = "right"
         else:
             print(f"Unknown direction: {self.dir}")
             return
 
-        self.pos = (x, y)
+        # Check full diagonal move first
+        if self.env.is_walkable((new_x, new_y), self.width, self.height):
+            self.pos = (new_x, new_y)
+        else:
+            # Try only X movement
+            if new_x != x and self.env.is_walkable((new_x, y), self.width, self.height):
+                self.pos = (new_x, y)
+            # Try only Y movement
+            elif new_y != y and self.env.is_walkable((x, new_y), self.width, self.height):
+                self.pos = (x, new_y)
+
         self.dir = direction
+
 
     def jump(self, jump_sound):
         if self.stamina < self.jump_stamina:
-            return False
-
+            return "NO STAMINA"
+        
+            
         dx, dy = self.get_direction_vector()
         steps = 20
         step_size = self.jump_length / steps
 
         x, y = self.pos
+
+        new_x = x + steps * step_size * dx
+        new_y = y + steps * step_size * dy
+
+        if not self.env.is_walkable((new_x, new_y), self.width, self.height):
+            return "BLOCKED"
 
         for i in range(steps):
             x += dx * step_size
@@ -115,7 +137,7 @@ class FoxClass:
 
         self.stamina -= self.jump_stamina
         jump_sound.play()
-        return True
+        return "SUCCESS"
 
     def draw_jump_trail(self, screen, pygame):
         for (x, y), alpha in self.jump_trail:
