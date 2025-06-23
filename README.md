@@ -9,6 +9,8 @@ Tested and developed on macOS M1, should also run on Linux and Windows with Pyth
 
 These steps assume you're using **macOS** or **Linux**. For Windows, use Git Bash or WSL.
 
+If these instructions fail, please see pygame-ce git repo, pygame-ce website or instructions on specific problem for solution.
+
 ### 1. Clone the Repository
 
 ```bash
