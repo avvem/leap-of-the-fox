@@ -176,3 +176,6 @@ class FoxClass:
 
     def hit(self):
         self.health -= 10
+
+    def hit_small(self):
+        self.health -= 1

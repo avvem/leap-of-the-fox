@@ -16,7 +16,7 @@ class HunterClass:
         self.prev_positions = []
         self.max_prev_positions = 10  # Enough for window = 5
         self.spawn()
-        print(f"Hunter object created with position {self.pos}")
+        # print(f"Hunter object created with position {self.pos}")
 
     def spawn(self):
         while True:
@@ -52,7 +52,7 @@ class HunterClass:
             for i in range(-window - 1, -1)
         ]
         avg_distance = sum(distances) / len(distances)
-        print(f"[Hunter] Average movement distance: {avg_distance:.2f}")
+        # print(f"[Hunter] Average movement distance: {avg_distance:.2f}")
         return avg_distance < threshold
 
     def walk(self, fox_pos):
@@ -77,7 +77,7 @@ class HunterClass:
         randomness_fact = 3
 
         if stuck:
-            print("[Hunter] Detected stuck — triggering escape behavior.")
+            # print("[Hunter] Detected stuck — triggering escape behavior.")
             # Try large random moves to escape stuck state
             for _ in range(5):
                 dx = random.randint(-1, 1) * step * 5

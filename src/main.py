@@ -1,5 +1,6 @@
 # Example file showing a basic pygame "game loop"
 import pygame
+import random
 import os
 from fox import FoxClass
 from squirrel import SquirrelClass
@@ -8,6 +9,7 @@ from projectile import Projectile
 from explosion import Explosion
 from muzzle_flash import MuzzleFlash
 from environment import Environment
+from witch import WitchClass
 
 print("Imports done")
 
@@ -84,6 +86,14 @@ HUNTER_STEP_LENGTH = 8
 HUNTER_IMAGE = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'hunter.png'))
 HUNTER_IMAGE = pygame.transform.scale(HUNTER_IMAGE, (HUNTER_WIDTH, HUNTER_HEIGHT))
 
+WITCH_WIDTH = round(XSIZE/20)
+WITCH_HEIGHT = round(XSIZE/20)
+WITCH_STEP_LENGTH = 8
+WITCH_AOE_RADIUS = 75
+WITCH_ATTACK_DURATION = 600
+WITCH_IMAGE = pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'witch.png'))
+WITCH_IMAGE = pygame.transform.scale(WITCH_IMAGE, (WITCH_WIDTH, WITCH_HEIGHT))
+
 
 pygame.display.set_caption("My first game")
 clock = pygame.time.Clock()
@@ -106,12 +116,16 @@ DYING_SOUND = pygame.mixer.Sound(os.path.join(os.path.dirname(os.path.abspath(__
 
 
 
-def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
+def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list):
 
     screen.blit(BACKGROUND,(0,0))
     screen.blit(SQUIRREL_IMAGE, squirrel_npc.pos)
     for hunter in hunters:
         screen.blit(HUNTER_IMAGE, hunter.pos)
+
+    for witch in witches:
+        screen.blit(WITCH_IMAGE, witch.pos)
+        witch.draw_teleport_trail(screen, pygame)
 
     score_text = SCORE_FONT.render("Score: " + str(player_score), 1, WHITE)
     screen.blit(score_text, (10,0))
@@ -124,6 +138,9 @@ def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, ex
     for projectile in projectiles:
         screen.blit(BULLET_IMAGE, projectile.pos)
 
+    for aoe in aoe_list:
+        aoe.draw(screen)
+
     for explosion in explosions:
         still_animating = explosion.draw(screen)
         if not still_animating:
@@ -134,9 +151,9 @@ def draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, ex
         if not still_animating:
             muzzle_flashes.remove(muzzle_flash)
 
-    fox_player.draw_jump_trail(screen, pygame=pygame)
-
     env.draw(screen, ROCK_IMAGE_LIST)
+
+    fox_player.draw_jump_trail(screen, pygame=pygame)
 
     draw_bars(fox_player)
 
@@ -268,20 +285,33 @@ def main():
         height=SQUIRREL_HEIGHT
     )
 
-    hunter_npc = HunterClass(
-        x_max=XSIZE - HUNTER_WIDTH,
-        y_max=YSIZE - HUNTER_HEIGHT,
-        step_length=HUNTER_STEP_LENGTH,
-        bullet_speed=BULLET_SPEED,
-        width=HUNTER_WIDTH,
-        height=HUNTER_HEIGHT,
-        env=env
+    # hunter_npc = HunterClass(
+    #     x_max=XSIZE - HUNTER_WIDTH,
+    #     y_max=YSIZE - HUNTER_HEIGHT,
+    #     step_length=HUNTER_STEP_LENGTH,
+    #     bullet_speed=BULLET_SPEED,
+    #     width=HUNTER_WIDTH,
+    #     height=HUNTER_HEIGHT,
+    #     env=env
+    #)
+
+    witch_npc =  WitchClass(
+        x_max=XSIZE - WITCH_WIDTH,
+        y_max=YSIZE - WITCH_HEIGHT,
+        step_length=WITCH_STEP_LENGTH,
+        width=WITCH_WIDTH,
+        height=WITCH_HEIGHT,
+        env=env,
+        aoe_radius=WITCH_AOE_RADIUS,
+        duration=WITCH_ATTACK_DURATION
     )
 
-    hunters = [hunter_npc]
+    hunters = []
+    witches = [witch_npc]
     projectiles = []
     explosions = []
     muzzle_flashes = []
+    aoe_list = []
 
     print("Top of main")
 
@@ -321,9 +351,30 @@ def main():
             FOX_EATS_SOUND.play()
             player_score += 1
             if(player_score % 10 == 0):
-                new_hunter = HunterClass(x_max=XSIZE-HUNTER_WIDTH, y_max=YSIZE-HUNTER_HEIGHT, step_length=HUNTER_STEP_LENGTH, bullet_speed=BULLET_SPEED, width=HUNTER_WIDTH, height=HUNTER_HEIGHT, env=env)
-                hunters.append(new_hunter)
-                HUNTER_SPAWNING_SOUND.play()
+                if random.random() < 0.5:
+                    new_hunter = hunter_npc = HunterClass(
+                        x_max=XSIZE - HUNTER_WIDTH,
+                        y_max=YSIZE - HUNTER_HEIGHT,
+                        step_length=HUNTER_STEP_LENGTH,
+                        bullet_speed=BULLET_SPEED,
+                        width=HUNTER_WIDTH,
+                        height=HUNTER_HEIGHT,
+                        env=env
+                    )
+                    hunters.append(new_hunter)
+                    HUNTER_SPAWNING_SOUND.play()
+                else:
+                    new_witch =  WitchClass(
+                        x_max=XSIZE - WITCH_WIDTH,
+                        y_max=YSIZE - WITCH_HEIGHT,
+                        step_length=WITCH_STEP_LENGTH,
+                        width=WITCH_WIDTH,
+                        height=WITCH_HEIGHT,
+                        env=env,
+                        aoe_radius=WITCH_AOE_RADIUS,
+                        duration=WITCH_ATTACK_DURATION
+                    )
+                    witches.append(new_witch)
             squirrel_npc.spawn()
 
         if(counter % 25 == 0):
@@ -337,6 +388,12 @@ def main():
                 if(shot):
                     explosions.append(MuzzleFlash((hunter.pos[0] + (HUNTER_WIDTH // 2), hunter.pos[1] +  (HUNTER_HEIGHT // 2)), pygame))
                     HUNTER_SHOOTING_SOUND.play()
+            
+            for witch in witches:
+                witch.walk(fox_player.pos)
+                spell_cast = witch.attack(fox_pos=fox_player.pos, aoe_list=aoe_list)
+                if(spell_cast):
+                    pass # here play sound
 
         for projectile in list(projectiles):  # Copy to allow removal during iteration
             projectile.move()
@@ -353,22 +410,31 @@ def main():
                     FOX_HIT_SOUND.play()
                     projectiles.remove(projectile)
 
+        # Update AoE spells
+        for aoe in list(aoe_list):
+            if aoe.is_fox_in_range(fox_player.pos):
+                fox_player.hit_small()  # Or any effect you want
+
+            if not aoe.update():
+                aoe_list.remove(aoe)
+
+
         if(fox_player.health <= 0):
             running = False
             DYING_SOUND.play()
             break
 
-        draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
+        draw_window(player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list)
 
         clock.tick(FPS)  # limits FPS to 60
     
     draw_game_over(screen, final_score=player_score, font=SCORE_FONT)
     pygame.time.delay(3000)
 
-    player_name = get_player_name(screen, SCORE_FONT, player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
+    player_name = get_player_name(screen, SCORE_FONT, player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list)
     save_high_score(player_name, player_score)
 
-    show_high_scores(screen, SCORE_FONT, "high_scores.txt", player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
+    show_high_scores(screen, SCORE_FONT, "high_scores.txt", player_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list)
     pygame.time.delay(5000)
 
     running = True
@@ -430,14 +496,14 @@ def draw_game_over(screen, final_score, font):
 
     pygame.display.flip()
 
-def get_player_name(screen, font, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
+def get_player_name(screen, font, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list):
     name = ""
     active = True
     input_box = pygame.Rect(XSIZE // 2 - 125, YSIZE // 2 + 80, 250, 75)
     clock = pygame.time.Clock()
 
     # Redraw the game window and overlay
-    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
+    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list)
     overlay = pygame.Surface((XSIZE, YSIZE))
     overlay.set_alpha(180)
     overlay.fill((50, 50, 50))
@@ -481,7 +547,7 @@ def save_high_score(name, score, filename="high_scores.txt"):
     with open(filename, "a") as file:
         file.write(f"{name}: {score}\n")
 
-def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env):
+def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list):
     if not os.path.exists(filename):
         return
 
@@ -491,7 +557,7 @@ def show_high_scores(screen, font, filename, final_score, hunters, squirrel_npc,
     scores = sorted(scores, key=lambda x: int(x.split(": ")[1]), reverse=True)
     top_scores = scores[:10]
 
-    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env)
+    draw_window(final_score, hunters, squirrel_npc, fox_player, projectiles, explosions, muzzle_flashes, env, witches, aoe_list)
     overlay = pygame.Surface((XSIZE, YSIZE))
     overlay.set_alpha(180)
     overlay.fill((50, 50, 50))
