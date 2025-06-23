@@ -6,6 +6,9 @@ __pycache__/
 # Virtual environment
 pygame-env/
 
+# High score file not needed
+high_scores.txt
+
 # VS Code
 .vscode/
 
