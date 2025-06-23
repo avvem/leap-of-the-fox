@@ -5,44 +5,6 @@ Tested and developed on macOS M1, should also run on Linux and Windows with Pyth
 
 ---
 
-## 📁 Project Structure
-
-PYGAME/
-├── assets/                     # Game assets (images, sounds)
-│   ├── bg.png
-│   ├── bullet.png
-│   ├── dying.mp3
-│   ├── fox_breathing.mp3
-│   ├── fox_eating.mp3
-│   ├── fox_hit.mp3
-│   ├── fox_jumping.mp3
-│   ├── fox.png
-│   ├── hunter_shooting.mp3
-│   ├── hunter_spawning.mp3
-│   ├── hunter.png
-│   └── squirrel.png
-│
-├── pygame-env/                 # Python virtual environment (ignored by Git)
-│
-├── sound_files/               # FL Studio files (ignored by Git)
-│
-├── src/                        # All source code
-│   ├── explosion.py
-│   ├── fox.py
-│   ├── hunter.py
-│   ├── main.py
-│   ├── muzzle_flash.py
-│   ├── projectile.py
-│   └── squirrel.py
-│
-├── .gitignore                  # Git ignore rules
-├── game_icon.icns              # Optional icon file
-├── high_scores.txt             # Game score persistence
-├── requirements.txt            # Python dependencies
-
-
----
-
 ## 🚀 Getting Started
 
 These steps assume you're using **macOS** or **Linux**. For Windows, use Git Bash or WSL.
@@ -64,9 +26,38 @@ source pygame-env/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+Also install pygame-ce here (see below).
 
 ### 4. Run the Game
 ```bash
 cd src
 python main.py
 ```
+
+---
+
+## 🧰 Requirements
+Python 3.11+
+
+Pygame Community Edition (pygame-ce)
+
+### 🔧 Installing pygame-ce
+Use pip to install Pygame CE:
+
+```bash
+pip install pygame-ce
+```
+Make sure your virtual environment is activated before running the above command.
+
+### 🛠 SDL2 Libraries (macOS/Linux only)
+On macOS (via Homebrew):
+
+```bash
+brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf
+```
+Linux users should install the SDL2 development libraries using their package manager, e.g.:
+
+```bash
+sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+```
+Windows users do not need to install SDL2 separately — it comes bundled with pygame-ce.
