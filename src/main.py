@@ -317,6 +317,8 @@ def main():
 
     show_title_menu(screen, SCORE_FONT)
 
+    show_controls_menu(screen, SCORE_FONT)
+
     running = True
     counter = 0
     player_score = 0
@@ -414,6 +416,7 @@ def main():
         for aoe in list(aoe_list):
             if aoe.is_fox_in_range(fox_player.pos):
                 fox_player.hit_small()  # Or any effect you want
+                FOX_HIT_SOUND.play()
 
             if not aoe.update():
                 aoe_list.remove(aoe)
@@ -477,6 +480,54 @@ def show_title_menu(screen, font):
             elif event.type == pygame.KEYDOWN:
                 waiting = False
         clock.tick(FPS)
+
+def show_controls_menu(screen, font):
+    screen.blit(BACKGROUND, (0, 0))
+
+    overlay = pygame.Surface((XSIZE, YSIZE))
+    overlay.set_alpha(180)
+    overlay.fill((50, 50, 50))
+    screen.blit(overlay, (0, 0))
+
+    title_font = pygame.font.SysFont('comicsans', 60)
+    text_font = pygame.font.SysFont('comicsans', 30)
+
+    title_text = title_font.render("How to Play", True, (255, 255, 255))
+    title_rect = title_text.get_rect(center=(XSIZE // 2, 120))
+    screen.blit(title_text, title_rect)
+
+    controls = [
+        "W - Jump / Move Up",
+        "A - Move Left",
+        "S - Move Down",
+        "D - Move Right",
+        "Spacebar - Leap / Jump",
+        "",
+        "Objective: Eat all the squirrels!"
+    ]
+
+    for i, line in enumerate(controls):
+        text = text_font.render(line, True, (255, 255, 255))
+        rect = text.get_rect(center=(XSIZE // 2, 180 + i * 30))
+        screen.blit(text, rect)
+
+    continue_text = font.render("Press any key to start", True, (255, 255, 255))
+    continue_rect = continue_text.get_rect(center=(XSIZE // 2, YSIZE - 200))
+    screen.blit(continue_text, continue_rect)
+
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.KEYDOWN:
+                waiting = False
+        clock.tick(FPS)
+
+
 
 
 def draw_game_over(screen, final_score, font):
