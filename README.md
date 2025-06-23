@@ -1,4 +1,4 @@
-# 🎮 Pygame CE Platformer
+# 🎮 Leap of the Fox - a Pygame CE game
 
 A platformer game built using [Pygame Community Edition (pygame-ce)](https://pyga.me/docs/).  
 Tested and developed on macOS M1, should also run on Linux and Windows with Python 3.11+.
