@@ -1,0 +1,20 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+pygame-env/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Sound files not needed
+sound_files/
+
+# Other temporary files
+*.log
+*.tmp
