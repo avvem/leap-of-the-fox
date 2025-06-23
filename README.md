@@ -52,21 +52,21 @@ These steps assume you're using **macOS** or **Linux**. For Windows, use Git Bas
 ```bash
 git clone https://github.com/YOUR_USERNAME/pygame-ce-platformer.git
 cd pygame-ce-platformer
+```
 
-2. Create Virtual Environment
-bash
-Copy
-Edit
+### 2. Create Virtual Environment
+```bash
 python3 -m venv pygame-env
 source pygame-env/bin/activate
-3. Install Dependencies
-bash
-Copy
-Edit
+```
+
+### 3. Install Dependencies
+```bash
 pip install -r requirements.txt
-4. Run the Game
-bash
-Copy
-Edit
+```
+
+### 4. Run the Game
+```bash
 cd src
 python main.py
+```
