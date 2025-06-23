@@ -50,8 +50,8 @@ These steps assume you're using **macOS** or **Linux**. For Windows, use Git Bas
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pygame-ce-platformer.git
-cd pygame-ce-platformer
+git clone https://github.com/avvem/leap-of-the-fox.git
+cd leap-of-the-fox
 ```
 
 ### 2. Create Virtual Environment
