@@ -1,0 +1,14 @@
+altgraph==0.17.4
+black==25.1.0
+click==8.2.1
+macholib==1.16.3
+modulegraph==0.19.6
+mypy_extensions==1.1.0
+packaging==25.0
+pathspec==0.12.1
+platformdirs==4.3.8
+py2app==0.28.8
+pygame-ce==2.5.5
+pyinstaller==6.14.1
+pyinstaller-hooks-contrib==2025.5
+setuptools==80.9.0
